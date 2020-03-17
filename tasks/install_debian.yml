@@ -1,5 +1,5 @@
 ---
-- name: preconfigure tzdata
+- name: Debian install | preconfiguring tzdata
   debconf:
     name: tzdata
     question: "tzdata/{{ item.question }}"
@@ -9,7 +9,7 @@
       - { question: "Zones/{{ locale_timezone_continent|default('Etc') }}", values: "{{ locale_timezone_city|default('UTC') }}", type: 'select' }
       - { question: 'Areas', values: "{{ locale_timezone_continent|default('Etc') }}", type: 'select' }
 
-- name: preconfigure locales
+- name: Debian install | preconfiguring locales
   debconf:
     name: locales
     question: "locales/{{ item.question }}"
@@ -19,19 +19,16 @@
       - { question: 'default_environment_locale', values: "{{ locale_default_lang|default('en_US') }}.{{ locale_default_charset|default('UTF-8') }}", type: 'select' }
       - { question: 'locales_to_be_generated', values: "en_US.UTF-8 UTF-8", type: 'multiselect' }
 
-- name: install locales packages
+- name: Debian install | installing locales packages
   apt:
-    name: "{{ item }}"
+    name: "{{ ['tzdata', 'locales'] }}"
     state: latest
-  with_items:
-    - tzdata
-    - locales
 
-- name: configure timezone
+- name: Debian install | configuring timezone
   timezone:
     name: "{{ locale_timezone|default('Etc/UTC') }}"
 
-- name: configure default locale
+- name: Debian install | configuring default locale
   template:
     src: locale.j2
     dest: /etc/default/locale
@@ -39,19 +36,19 @@
     group: root
     mode: 0644
 
-- name: generate locales
+- name: Debian install | generating locales
   locale_gen:
     name: "{{ item.lang }}.{{ item.charset }}"
     state: present
   with_items: "{{ locale_generate }}"
 
-- name: reconfigure locales packages
+- name: Debian install | reconfiguring locales packages
   command: dpkg-reconfigure --frontend noninteractive {{ item }}
   with_items:
     - tzdata
     - locales
 
-- name: configure system bashrc
+- name: Debian install | configuring system bashrc
   lineinfile:
     dest: /etc/bash.bashrc
     state: present
@@ -61,7 +58,7 @@
   with_dict: "{{ locale_env }}"
   when: item.value is not none and item.value != ''
 
-- name: reconfigure default keyboard layout
+- name: Debian install | reconfiguring default keyboard layout
   lineinfile:
     dest: /etc/default/keyboard
     state: present
